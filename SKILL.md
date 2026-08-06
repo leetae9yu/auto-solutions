@@ -66,6 +66,10 @@ description: "업로드된 수학 시험지 PDF·이미지를 원문 그대로 L
 
 - Tectonic 또는 XeLaTeX로 문제지·해설지 PDF를 각각 컴파일한다.
 - HWPX는 PDF 페이지를 A4 전면 이미지로 넣는 fidelity-first 포맷이다.
+  `settings.xml`, `META-INF/container.xml`, `container.rdf`, 호환
+  `header.xml`, `masterpage0.xml`을 포함한 완전 패키지를 사용하고 PDF
+  페이지마다 독립 `sectionN.xml`을 만든다. 축약 패키지는 한컴에서
+  파일 손상으로 판정될 수 있으므로 금지한다.
   다음 명령으로 만든다.
 
 ```bash

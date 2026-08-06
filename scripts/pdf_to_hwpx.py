@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import zipfile
 from html import escape
@@ -50,14 +51,20 @@ def _manifest_xml(page_count: int) -> str:
         + f'odf:full-path="BinData/page{index:03d}.png"/>'
         for index in range(1, page_count + 1)
     )
+    sections = "".join(
+        '<odf:file-entry odf:media-type="application/xml" '
+        + f'odf:full-path="Contents/section{index}.xml"/>'
+        for index in range(page_count)
+    )
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <odf:manifest xmlns:odf="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">
 <odf:file-entry odf:media-type="{MIME}" odf:full-path="/"/>
 <odf:file-entry odf:media-type="application/xml" odf:full-path="version.xml"/>
+<odf:file-entry odf:media-type="application/xml" odf:full-path="settings.xml"/>
 <odf:file-entry odf:media-type="application/xml" odf:full-path="Contents/header.xml"/>
 <odf:file-entry odf:media-type="text/xml" odf:full-path="Contents/content.hpf"/>
-<odf:file-entry odf:media-type="application/xml" odf:full-path="Contents/section0.xml"/>
-{images}</odf:manifest>"""
+<odf:file-entry odf:media-type="application/xml" odf:full-path="Contents/masterpage0.xml"/>
+{sections}{images}</odf:manifest>"""
 
 
 def _content_xml(title: str, page_count: int) -> str:
@@ -66,35 +73,68 @@ def _content_xml(title: str, page_count: int) -> str:
         + 'media-type="image/png" isEmbeded="1"/>'
         for index in range(1, page_count + 1)
     )
+    sections = "".join(
+        f'<opf:item id="section{index}" href="Contents/section{index}.xml" '
+        + 'media-type="application/xml"/>'
+        for index in range(page_count)
+    )
+    section_refs = "".join(
+        f'<opf:itemref idref="section{index}"/>' for index in range(page_count)
+    )
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <opf:package xmlns:opf="http://www.idpf.org/2007/opf/" version="2.0">
 <opf:metadata><opf:title>{escape(title)}</opf:title>
 <opf:language>ko</opf:language></opf:metadata>
 <opf:manifest>
 <opf:item id="header" href="Contents/header.xml" media-type="application/xml"/>
-<opf:item id="section0" href="Contents/section0.xml" media-type="application/xml"/>
-{images}</opf:manifest>
-<opf:spine><opf:itemref idref="section0" linear="yes"/></opf:spine>
+<opf:item id="settings" href="settings.xml" media-type="application/xml"/>
+<opf:item id="masterpage0" href="Contents/masterpage0.xml" media-type="application/xml"/>
+{sections}{images}</opf:manifest>
+<opf:spine><opf:itemref idref="header"/>{section_refs}</opf:spine>
 </opf:package>"""
 
 
-def _header_xml() -> str:
+def _header_xml(page_count: int) -> str:
+    path = Path(__file__).parents[1] / "assets/hancom-header.xml"
+    template = path.read_text(encoding="utf-8")
+    return re.sub(r'secCnt="\d+"', f'secCnt="{page_count}"', template, count=1)
+
+
+def _settings_xml() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ha:HWPApplicationSetting xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app"
+ xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">
+<ha:CaretPosition listIDRef="0" paraIDRef="0" pos="0"/>
+</ha:HWPApplicationSetting>"""
+
+
+def _container_xml() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container"
+ xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf"><ocf:rootfiles>
+<ocf:rootfile full-path="Contents/content.hpf"
+ media-type="application/hwpml-package+xml"/>
+<ocf:rootfile full-path="Preview/PrvText.txt" media-type="text/plain"/>
+</ocf:rootfiles></ocf:container>"""
+
+
+def _container_rdf() -> str:
     return """<?xml version="1.0" encoding="UTF-8"?>
-<hh:head xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head"
- version="1.5" secCnt="1">
-<hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/>
-<hh:refList>
-<hh:fontfaces itemCnt="1"><hh:fontface lang="HANGUL" fontCnt="1">
-<hh:font id="0" face="함초롬바탕" type="TTF"/>
-</hh:fontface></hh:fontfaces>
-<hh:charProperties itemCnt="1">
-<hh:charPr id="0" height="1000" textColor="#000000" shadeColor="none"
- useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="0"/>
-</hh:charProperties>
-<hh:paraProperties itemCnt="1">
-<hh:paraPr id="0" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0"/>
-</hh:paraProperties>
-</hh:refList></hh:head>"""
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="Contents/content.hpf"/>
+</rdf:RDF>"""
+
+
+def _masterpage_xml() -> str:
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<hm:masterPage xmlns:hm="http://www.hancom.co.kr/hwpml/2011/master-page"
+ xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph"
+ id="masterpage0" type="BOTH" pageNumber="0" pageDuplicate="0" pageFront="0">
+<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="TOP"
+ linkListIDRef="0" linkListNextIDRef="0" textWidth="59528" textHeight="84188"
+ hasTextRef="0" hasNumRef="0"><hp:p id="0" paraPrIDRef="0" styleIDRef="0"
+ pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0"><hp:t/></hp:run>
+</hp:p></hp:subList></hm:masterPage>"""
 
 
 def _page_settings_xml() -> str:
@@ -139,23 +179,25 @@ def _picture_xml(index: int) -> str:
 <hp:shapeComment>PDF page {index}</hp:shapeComment></hp:pic>"""
 
 
-def _section_xml(page_count: int) -> str:
-    paragraphs: list[str] = []
-    for index in range(1, page_count + 1):
-        settings = _page_settings_xml() if index == 1 else ""
-        page_break = "0" if index == 1 else "1"
-        paragraphs.append(
-            f'<hp:p id="{2_000_000_000 + index}" paraPrIDRef="0" styleIDRef="0" '
-            + f'pageBreak="{page_break}" columnBreak="0" merged="0">'
-            + f'<hp:run charPrIDRef="0">{settings}{_picture_xml(index)}<hp:t/></hp:run>'
-            + "</hp:p>"
-        )
+def _section_xml(index: int) -> str:
+    lineseg = (
+        '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" '
+        + f'vertsize="{PAGE_HEIGHT}" textheight="{PAGE_HEIGHT}" baseline="{PAGE_HEIGHT}" '
+        + f'spacing="0" horzpos="0" horzsize="{PAGE_WIDTH}" flags="393216"/>'
+        + "</hp:linesegarray>"
+    )
+    paragraph = (
+        f'<hp:p id="{2_000_000_000 + index}" paraPrIDRef="0" styleIDRef="0" '
+        + 'pageBreak="0" columnBreak="0" merged="0">'
+        + f'<hp:run charPrIDRef="0">{_page_settings_xml()}{_picture_xml(index)}'
+        + f"<hp:t/></hp:run>{lineseg}</hp:p>"
+    )
     return (
         '<?xml version="1.0" encoding="UTF-8"?>'
         + '<hs:sec xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" '
         + 'xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" '
         + 'xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core">'
-        + "".join(paragraphs)
+        + paragraph
         + "</hs:sec>"
     )
 
@@ -181,13 +223,22 @@ def build_hwpx(source: Path, output: Path) -> None:
         archive.writestr("mimetype", MIME, compress_type=zipfile.ZIP_STORED)
         for name, value in (
             ("version.xml", _version_xml()),
+            ("settings.xml", _settings_xml()),
+            ("META-INF/container.xml", _container_xml()),
+            ("META-INF/container.rdf", _container_rdf()),
             ("META-INF/manifest.xml", _manifest_xml(len(pages))),
             ("Contents/content.hpf", _content_xml(source.stem, len(pages))),
-            ("Contents/header.xml", _header_xml()),
-            ("Contents/section0.xml", _section_xml(len(pages))),
+            ("Contents/header.xml", _header_xml(len(pages))),
+            ("Contents/masterpage0.xml", _masterpage_xml()),
             ("Preview/PrvText.txt", f"{source.stem}\n{len(pages)} pages\n"),
         ):
             archive.writestr(name, value, compress_type=zipfile.ZIP_DEFLATED)
+        for index in range(len(pages)):
+            archive.writestr(
+                f"Contents/section{index}.xml",
+                _section_xml(index + 1),
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
         for index, image in enumerate(pages, start=1):
             archive.writestr(
                 f"BinData/page{index:03d}.png",

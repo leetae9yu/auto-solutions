@@ -59,19 +59,37 @@ def test_builds_valid_image_backed_hwpx_from_multipage_pdf(tmp_path: Path) -> No
             "BinData/page001.png",
             "BinData/page002.png",
         ]
+        assert {
+            "settings.xml",
+            "META-INF/container.xml",
+            "META-INF/container.rdf",
+            "Contents/masterpage0.xml",
+        } <= set(names)
         for name in (
             "version.xml",
+            "settings.xml",
             "META-INF/manifest.xml",
+            "META-INF/container.xml",
+            "META-INF/container.rdf",
             "Contents/content.hpf",
             "Contents/header.xml",
             "Contents/section0.xml",
+            "Contents/section1.xml",
+            "Contents/masterpage0.xml",
         ):
             _ = ET.fromstring(archive.read(name))
-        section = archive.read("Contents/section0.xml").decode("utf-8")
-        assert section.count('pageBreak="1"') == 1
+        for name in ("Contents/section0.xml", "Contents/section1.xml"):
+            section = archive.read(name).decode("utf-8")
+            assert "<hp:pic " in section
+            assert "<hp:linesegarray>" in section
+        header = archive.read("Contents/header.xml").decode("utf-8")
+        for marker in ("<hh:borderFills", "<hh:charProperties", "<hh:paraProperties", "<hh:styles"):
+            assert marker in header
         content = archive.read("Contents/content.hpf").decode("utf-8")
         assert 'href="BinData/page001.png"' in content
         assert 'href="BinData/page002.png"' in content
+        assert 'href="Contents/section0.xml"' in content
+        assert 'href="Contents/section1.xml"' in content
 
 
 def test_rejects_non_pdf_input(tmp_path: Path) -> None:
