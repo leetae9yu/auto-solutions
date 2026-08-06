@@ -1,0 +1,35 @@
+[project]
+name = "auto-solutions"
+version = "1.0.0"
+description = "Create faithful Korean exam question and solution documents"
+requires-python = ">=3.11"
+dependencies = [
+  "PyMuPDF>=1.26",
+]
+
+[dependency-groups]
+dev = [
+  "basedpyright>=1.31",
+  "pytest>=8.4",
+  "ruff>=0.12",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["COM812", "CPY001", "ISC003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004", "S101", "S314", "S603", "S607"]
+"typings/**" = ["A001"]
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+pythonVersion = "3.11"
+stubPath = "typings"
