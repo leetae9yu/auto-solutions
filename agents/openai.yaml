@@ -1,7 +1,7 @@
 interface:
   display_name: "시험지·해설지 제작"
-  short_description: "업로드 시험지를 PDF·HWPX 문제지와 해설지로 제작"
-  default_prompt: "Use $auto-solutions to transcribe the uploaded exam and create question and solution PDFs and HWPX files."
+  short_description: "업로드 시험지를 PDF·DOCX 문제지와 해설지로 제작"
+  default_prompt: "Use $auto-solutions to transcribe the uploaded exam and create question and solution PDFs and DOCX files."
 
 policy:
   allow_implicit_invocation: true

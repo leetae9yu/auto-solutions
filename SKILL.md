@@ -1,6 +1,6 @@
 ---
 name: auto-solutions
-description: "업로드된 수학 시험지 PDF·이미지를 원문 그대로 LaTeX로 전사하고 해설을 작성해, 풀이 공간이 있는 문제지와 2-column 빠른정답이 앞에 붙은 해설지를 각각 PDF·HWPX로 완성한다. 사용자가 문제지 업로드, 시험지 전사, 문제지·해설지 제작, LaTeX 시험지, 풀이 공간, 빠른정답, PDF/HWPX 산출물을 요청할 때 사용한다."
+description: "업로드된 수학 시험지 PDF·이미지를 원문 그대로 LaTeX로 전사하고 해설을 작성해, 풀이 공간이 있는 문제지와 2-column 빠른정답이 앞에 붙은 해설지를 각각 PDF·DOCX로 완성한다. 사용자가 문제지 업로드, 시험지 전사, 문제지·해설지 제작, LaTeX 시험지, 풀이 공간, 빠른정답, PDF/DOCX 산출물을 요청할 때 사용한다."
 ---
 
 # 시험지·해설지 제작
@@ -8,9 +8,9 @@ description: "업로드된 수학 시험지 PDF·이미지를 원문 그대로 L
 최종 납품물은 아래 네 파일뿐이다.
 
 - `<이름>_questions.pdf`
-- `<이름>_questions.hwpx`
+- `<이름>_questions.docx`
 - `<이름>_solutions.pdf`
-- `<이름>_solutions.hwpx`
+- `<이름>_solutions.docx`
 
 합본과 LaTeX 소스는 작업 파일로만 사용하고 납품하지 않는다.
 
@@ -62,20 +62,16 @@ description: "업로드된 수학 시험지 PDF·이미지를 원문 그대로 L
 - 이후 문항 번호 순서대로 풀이와 최종 답을 수록한다.
 - 원문과 답의 문항 수가 모두 일치해야 한다.
 
-### 빌드와 HWPX
+### 빌드와 DOCX
 
 - Tectonic 또는 XeLaTeX로 문제지·해설지 PDF를 각각 컴파일한다.
-- HWPX는 PDF 페이지를 A4 전면 이미지로 넣는 fidelity-first 포맷이다.
-  `settings.xml`, `META-INF/container.xml`, `container.rdf`, 호환
-  `header.xml`, `masterpage0.xml`을 포함한 완전 패키지를 사용하고 PDF
-  페이지마다 독립 `sectionN.xml`을 만든다. 축약 패키지는 한컴에서
-  파일 손상으로 판정될 수 있으므로 금지한다.
+- DOCX는 PDF 페이지를 A4 전면 이미지로 넣는 fidelity-first 포맷이다.
   다음 명령으로 만든다.
 
 ```bash
-uv run --with pymupdf \
-  scripts/pdf_to_hwpx.py \
-  <input.pdf> <output.hwpx>
+uv run \
+  scripts/pdf_to_docx.py \
+  <input.pdf> <output.docx>
 ```
 
 ### 검증
@@ -86,9 +82,9 @@ uv run --with pymupdf \
 4. 해설지 첫 페이지가 표 없는 2단 빠른정답인지 확인한다.
 5. PDF 전 페이지를 새로 렌더링해 머리말 잘림, 겹침, 누락, 한글 어절
    분리, 수식·표·그림 손상을 시각 검수한다.
-6. HWPX를 ZIP/XML 구조 검증하고 `BinData/page*.png` 수가 PDF 페이지
-   수와 같은지 확인한다. 각 이미지를 PDF 렌더와 픽셀 비교한다.
+6. DOCX를 LibreOffice에서 실제로 열어 PDF로 재변환한다. 페이지 수가
+   원본 PDF와 같고 모든 페이지 이미지가 정상적으로 렌더되는지 확인한다.
 7. 최종 경로에는 네 산출물만 남긴다.
 
-검증 실패는 원인을 수정한 뒤 PDF부터 다시 생성한다. HWPX만 따로
+검증 실패는 원인을 수정한 뒤 PDF부터 다시 생성한다. DOCX만 따로
 손봐서 PDF와 내용이 달라지게 하지 않는다.
